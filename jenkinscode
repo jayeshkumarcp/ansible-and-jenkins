@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo-url.git'
+            }
+        }
+        stage('Build and Publish') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'your-aws-credentials-id',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh 'aws ecr get-login-password --region your-aws-region | docker login --username AWS --password-stdin your-ecr-repository-url'
+                    sh 'docker build -t your-image-name .'
+                    sh 'docker tag your-image-name your-ecr-repository-url/your-image-name:latest'
+                    sh 'docker push your-ecr-repository-url/your-image-name:latest'
+                }
+            }
+        }
+    }
+}
